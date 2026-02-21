@@ -1,0 +1,29 @@
+# NetKeeper - Dependencies
+# Core
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic[email]==2.10.5
+pydantic-settings==2.7.1
+
+# Database
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+alembic==1.14.1
+
+# Auth
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.2.1
+
+# Redis (rate limiting, cache)
+redis==5.2.1
+
+# MikroTik (Fase 2)
+# librouteros==3.2.1
+
+# HTTP client (WhatsApp, Telegram)
+httpx==0.28.1
+
+# Utils
+python-dotenv==1.0.1
+python-multipart==0.0.20
