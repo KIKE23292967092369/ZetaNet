@@ -100,9 +100,9 @@ async def connect_olt_direct(
     try:
         credentials = OltCredentials(
             host=data.host,
-            username=data.ssh_username,
-            password=data.ssh_password,
-            port=data.ssh_port,
+            ssh_username=data.ssh_username,
+            ssh_password=data.ssh_password,
+            ssh_port=data.ssh_port,
             brand=data.brand,
         )
         driver = get_olt_driver(credentials)
