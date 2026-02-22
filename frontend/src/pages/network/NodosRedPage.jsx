@@ -2,7 +2,7 @@
  * NodosRedPage.jsx
  * NetKeeper - Nodos de Red
  * Tab MikroTik: conectar, estado en vivo, tráfico, interfaces + IP pool ocupadas/libres
- * Tab OLT: conectar directamente con credenciales SSH
+ * Tab OLT: conectar directamente con credenciales SSH + listar ONUs autorizadas
  */
 import { useState, useEffect, useRef, useCallback } from "react";
 import api from "../../api/axios";
@@ -350,7 +350,7 @@ const TrafficMonitor = ({ creds }) => {
 const InterfaceIpBlock = ({ iface, poolIface }) => {
   const [open, setOpen]                   = useState(false);
   const [showAll, setShowAll]             = useState(false);
-  const [filterOccupied, setFilterOccupied] = useState("all"); // "all" | "occupied" | "free"
+  const [filterOccupied, setFilterOccupied] = useState("all");
 
   const ips       = iface.ips || [];
   const hasPool   = poolIface?.has_pool && poolIface?.cidrs?.length > 0;
@@ -366,7 +366,6 @@ const InterfaceIpBlock = ({ iface, poolIface }) => {
 
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden">
-      {/* Header */}
       <div
         className="flex items-center justify-between px-5 py-4 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
         onClick={() => setOpen(v => !v)}
@@ -381,9 +380,7 @@ const InterfaceIpBlock = ({ iface, poolIface }) => {
             <span className="text-xs text-gray-500 italic">"{iface.comment}"</span>
           )}
         </div>
-
         <div className="flex items-center gap-4">
-          {/* CIDRs de la interfaz */}
           {ips.length > 0
             ? ips.map(ip => (
                 <span key={ip.address} className="font-mono text-sm text-indigo-600 font-semibold">
@@ -392,8 +389,6 @@ const InterfaceIpBlock = ({ iface, poolIface }) => {
               ))
             : <span className="text-xs text-gray-400">Sin IP</span>
           }
-
-          {/* Mini resumen del pool si está disponible */}
           {hasPool && (
             <div className="flex items-center gap-2 text-xs">
               <span className="flex items-center gap-1 text-red-600 font-semibold">
@@ -412,15 +407,10 @@ const InterfaceIpBlock = ({ iface, poolIface }) => {
               </span>
             </div>
           )}
-
-          {open
-            ? <ChevronUp className="w-4 h-4 text-gray-400" />
-            : <ChevronDown className="w-4 h-4 text-gray-400" />
-          }
+          {open ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
         </div>
       </div>
 
-      {/* Contenido expandido */}
       {open && (
         <div className="bg-white">
           {!hasPool ? (
@@ -429,7 +419,6 @@ const InterfaceIpBlock = ({ iface, poolIface }) => {
             </div>
           ) : (
             <>
-              {/* Barra de uso + filtros */}
               <div className="px-5 py-4 border-b border-gray-100">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-semibold text-gray-500">
@@ -445,8 +434,6 @@ const InterfaceIpBlock = ({ iface, poolIface }) => {
                     style={{ width: `${firstPool.pct_used}%` }}
                   />
                 </div>
-
-                {/* Filtros */}
                 <div className="flex items-center gap-2 mt-3">
                   {[
                     { value: "all",      label: `Todas (${allIps.length})`        },
@@ -465,10 +452,7 @@ const InterfaceIpBlock = ({ iface, poolIface }) => {
                   ))}
                 </div>
               </div>
-
-              {/* Tabla de IPs */}
               <div className="max-h-80 overflow-y-auto">
-                {/* Header tabla */}
                 <div className="grid grid-cols-12 bg-gray-50 border-b border-gray-100 px-5 py-2 sticky top-0">
                   <span className="col-span-3 text-xs font-semibold text-gray-400">IP</span>
                   <span className="col-span-1 text-xs font-semibold text-gray-400">Estado</span>
@@ -476,8 +460,6 @@ const InterfaceIpBlock = ({ iface, poolIface }) => {
                   <span className="col-span-2 text-xs font-semibold text-gray-400">Servicio</span>
                   <span className="col-span-2 text-xs font-semibold text-gray-400">PPPoE / Tipo</span>
                 </div>
-
-                {/* Filas */}
                 {visibleIps.map((ip, i) => (
                   <div key={i}
                     className={`grid grid-cols-12 px-5 py-2.5 border-b border-gray-50 text-xs
@@ -490,10 +472,7 @@ const InterfaceIpBlock = ({ iface, poolIface }) => {
                       }
                     </span>
                     <span className="col-span-4 font-medium text-gray-700 truncate">
-                      {ip.occupied
-                        ? ip.client_name
-                        : <span className="text-gray-300 italic">—</span>
-                      }
+                      {ip.occupied ? ip.client_name : <span className="text-gray-300 italic">—</span>}
                     </span>
                     <span className="col-span-2">
                       {ip.occupied && (
@@ -503,15 +482,10 @@ const InterfaceIpBlock = ({ iface, poolIface }) => {
                       )}
                     </span>
                     <span className="col-span-2 text-gray-400 font-mono truncate">
-                      {ip.occupied
-                        ? (ip.pppoe_username || (ip.connection_type === "fiber" ? "Fibra" : "Antena"))
-                        : null
-                      }
+                      {ip.occupied ? (ip.pppoe_username || (ip.connection_type === "fiber" ? "Fibra" : "Antena")) : null}
                     </span>
                   </div>
                 ))}
-
-                {/* Ver más */}
                 {!showAll && filteredIps.length > 20 && (
                   <div className="px-5 py-3 text-center border-t border-gray-100">
                     <button
@@ -521,7 +495,6 @@ const InterfaceIpBlock = ({ iface, poolIface }) => {
                     </button>
                   </div>
                 )}
-
                 {filteredIps.length === 0 && (
                   <div className="px-5 py-6 text-center text-xs text-gray-400 italic">
                     No hay IPs en este filtro
@@ -540,8 +513,6 @@ const InterfaceIpBlock = ({ iface, poolIface }) => {
 const InterfacesPanel = ({ interfaces, poolData, loadingPool }) => {
   const withIp    = interfaces.filter(i => i.ips?.length > 0);
   const withoutIp = interfaces.filter(i => !i.ips?.length);
-
-  // Mapa rápido nombre → datos de pool
   const poolMap = {};
   (poolData?.interfaces || []).forEach(p => { poolMap[p.name] = p; });
 
@@ -553,15 +524,12 @@ const InterfacesPanel = ({ interfaces, poolData, loadingPool }) => {
         <span className="ml-2 px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
           {interfaces.length} interfaces
         </span>
-
-        {/* Spinner mientras carga el pool */}
         {loadingPool && (
           <span className="flex items-center gap-1.5 text-xs text-indigo-500 ml-2">
             <div className="w-3 h-3 border-2 border-indigo-200 border-t-indigo-500 rounded-full animate-spin" />
             Cargando pool de IPs...
           </span>
         )}
-
         <div className="ml-auto flex items-center gap-3 text-xs text-gray-500">
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 bg-green-500 rounded-full" /> Con IP: {withIp.length}
@@ -571,16 +539,10 @@ const InterfacesPanel = ({ interfaces, poolData, loadingPool }) => {
           </span>
         </div>
       </div>
-
       <div className="space-y-2">
         {withIp.map(iface => (
-          <InterfaceIpBlock
-            key={iface.name}
-            iface={iface}
-            poolIface={poolMap[iface.name]}
-          />
+          <InterfaceIpBlock key={iface.name} iface={iface} poolIface={poolMap[iface.name]} />
         ))}
-
         {withoutIp.length > 0 && (
           <div className="mt-4">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 px-1">Sin dirección IP</p>
@@ -604,9 +566,10 @@ const InterfacesPanel = ({ interfaces, poolData, loadingPool }) => {
 const OltConnectForm = ({ onConnect, connecting }) => {
   const [form, setForm] = useState({
     host: "", ssh_username: "admin", ssh_password: "",
-    ssh_port: "22", brand: "zte",
+    ssh_port: "22", brand: "vsol", enable_password: "",
   });
   const [showPass, setShowPass] = useState(false);
+  const [showEnable, setShowEnable] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -664,23 +627,35 @@ const OltConnectForm = ({ onConnect, connecting }) => {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1">Contraseña Enable</label>
+            <div className="relative">
+              <input type={showEnable ? "text" : "password"} name="enable_password"
+                value={form.enable_password} onChange={handleChange} placeholder="••••••••"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+              <button type="button" onClick={() => setShowEnable(v => !v)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                {showEnable ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+          <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1">Puerto SSH</label>
             <input type="number" name="ssh_port" value={form.ssh_port} onChange={handleChange}
               placeholder="22"
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono" />
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">
-              Marca <span className="text-red-500">*</span>
-            </label>
-            <select name="brand" value={form.brand} onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white">
-              <option value="zte">ZTE</option>
-              <option value="vsol">VSOL</option>
-              <option value="huawei">Huawei</option>
-              <option value="fiberhome">FiberHome</option>
-            </select>
-          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 mb-1">
+            Marca <span className="text-red-500">*</span>
+          </label>
+          <select name="brand" value={form.brand} onChange={handleChange}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white">
+            <option value="vsol">VSOL</option>
+            <option value="zte">ZTE</option>
+            <option value="huawei">Huawei</option>
+            <option value="fiberhome">FiberHome</option>
+          </select>
         </div>
         <button type="submit" disabled={connecting}
           className="w-full flex items-center justify-center gap-2 py-3 bg-teal-600 text-white text-sm font-semibold rounded-xl hover:bg-teal-700 disabled:opacity-50 transition-colors mt-2">
@@ -748,12 +723,29 @@ const OltSystemCard = ({ info, onDisconnect, authMode, onAuthModeChange }) => (
 );
 
 const OltTab = () => {
-  const [oltInfo, setOltInfo]         = useState(null);
-  const [creds, setCreds]             = useState(null);
-  const [connecting, setConnecting]   = useState(false);
-  const [unauthOnus, setUnauthOnus]   = useState([]);
-  const [loadingOnus, setLoadingOnus] = useState(false);
-  const [authMode, setAuthMode]       = useState("manual");
+  const [oltInfo, setOltInfo]               = useState(null);
+  const [creds, setCreds]                   = useState(null);
+  const [connecting, setConnecting]         = useState(false);
+  const [unauthOnus, setUnauthOnus]         = useState([]);
+  const [loadingOnus, setLoadingOnus]       = useState(false);
+  const [authMode, setAuthMode]             = useState("manual");
+  const [authOnus, setAuthOnus]             = useState([]);
+  const [loadingAuthOnus, setLoadingAuthOnus] = useState(false);
+
+  const handleLoadAuthOnus = useCallback(async (credsOverride) => {
+    const useCreds = credsOverride || creds;
+    if (!useCreds) return;
+    setLoadingAuthOnus(true);
+    try {
+      const res = await api.post("/olt/all-onus-direct", useCreds);
+      setAuthOnus(res.data.onus || []);
+      if (!credsOverride) toast.success(`${res.data.total} ONUs cargadas`);
+    } catch {
+      if (!credsOverride) toast.error("Error cargando ONUs");
+    } finally {
+      setLoadingAuthOnus(false);
+    }
+  }, [creds]);
 
   const handleConnect = async (formCreds) => {
     setConnecting(true);
@@ -766,7 +758,9 @@ const OltTab = () => {
       setOltInfo(res.data);
       setCreds(formCreds);
       setUnauthOnus(res.data.unauthorized_onus || []);
-      toast.success(`OLT conectada — ${res.data.total_unauthorized} ONUs pendientes`);
+      toast.success(`OLT conectada`);
+      // Cargar ONUs autorizadas automáticamente
+      handleLoadAuthOnus(formCreds);
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al conectar OLT");
     } finally { setConnecting(false); }
@@ -776,7 +770,7 @@ const OltTab = () => {
     setOltInfo(null);
     setCreds(null);
     setUnauthOnus([]);
-
+    setAuthOnus([]);
   };
 
   const handleRefreshOnus = async () => {
@@ -791,12 +785,12 @@ const OltTab = () => {
   };
 
   if (!oltInfo) {
-    return (
-      <div>
-        <OltConnectForm onConnect={handleConnect} connecting={connecting} />
-      </div>
-    );
+    return <OltConnectForm onConnect={handleConnect} connecting={connecting} />;
   }
+
+  const onlineCount     = authOnus.filter(o => o.status === "online").length;
+  const offlineCount    = authOnus.filter(o => o.status === "offline").length;
+  const suspendedCount  = authOnus.filter(o => o.status === "suspended").length;
 
   return (
     <div className="space-y-4">
@@ -806,6 +800,89 @@ const OltTab = () => {
         authMode={authMode}
         onAuthModeChange={setAuthMode}
       />
+
+      {/* ONUs Autorizadas */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <CheckCircle2 className="w-5 h-5 text-green-500" />
+          <h3 className="font-bold text-gray-800">ONUs Autorizadas</h3>
+          {authOnus.length > 0 && (
+            <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-bold">
+              {authOnus.length} ONUs
+            </span>
+          )}
+          {/* Resumen de estados */}
+          {authOnus.length > 0 && (
+            <div className="flex items-center gap-3 ml-2 text-xs">
+              <span className="flex items-center gap-1 text-green-600 font-medium">
+                <span className="w-1.5 h-1.5 bg-green-500 rounded-full" /> {onlineCount} online
+              </span>
+              <span className="flex items-center gap-1 text-red-500 font-medium">
+                <span className="w-1.5 h-1.5 bg-red-500 rounded-full" /> {offlineCount} offline
+              </span>
+              {suspendedCount > 0 && (
+                <span className="flex items-center gap-1 text-amber-600 font-medium">
+                  <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" /> {suspendedCount} suspendidas
+                </span>
+              )}
+            </div>
+          )}
+          <button onClick={() => handleLoadAuthOnus()} disabled={loadingAuthOnus}
+            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-teal-600 border border-teal-200 bg-teal-50 rounded-lg hover:bg-teal-100">
+            <RefreshCw className={`w-3 h-3 ${loadingAuthOnus ? "animate-spin" : ""}`} />
+            Actualizar
+          </button>
+        </div>
+
+        {loadingAuthOnus ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="w-6 h-6 border-2 border-teal-200 border-t-teal-600 rounded-full animate-spin mr-3" />
+            <span className="text-sm text-gray-500">Cargando ONUs desde la OLT...</span>
+          </div>
+        ) : authOnus.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-sm text-gray-400">Sin ONUs autorizadas encontradas</p>
+            <p className="text-xs text-gray-300 mt-1">Verifica la contraseña enable</p>
+          </div>
+        ) : (
+          <div className="border border-gray-200 rounded-xl overflow-hidden">
+            <div className="grid grid-cols-12 bg-gray-50 border-b border-gray-200 px-4 py-2">
+              <span className="col-span-1 text-xs font-semibold text-gray-500">ID</span>
+              <span className="col-span-4 text-xs font-semibold text-gray-500">Serial</span>
+              <span className="col-span-2 text-xs font-semibold text-gray-500">Puerto PON</span>
+              <span className="col-span-3 text-xs font-semibold text-gray-500">Estado</span>
+              <span className="col-span-2 text-xs font-semibold text-gray-500">Info</span>
+            </div>
+            <div className="divide-y divide-gray-100 max-h-[500px] overflow-y-auto">
+              {authOnus.map((onu, i) => (
+                <div key={i} className="grid grid-cols-12 px-4 py-3 hover:bg-gray-50 transition-colors">
+                  <span className="col-span-1 text-sm font-mono text-gray-400">{onu.onu_id}</span>
+                  <span className="col-span-4 font-mono text-sm font-semibold text-gray-800">{onu.serial_number}</span>
+                  <span className="col-span-2 text-sm text-gray-600 font-mono">
+                    GPON {onu.slot}/{onu.pon_port}
+                  </span>
+                  <span className="col-span-3">
+                    <span className={`flex items-center gap-1 text-xs font-medium ${
+                      onu.status === "online"    ? "text-green-600" :
+                      onu.status === "suspended" ? "text-amber-600" : "text-red-500"
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${
+                        onu.status === "online"    ? "bg-green-500 animate-pulse" :
+                        onu.status === "suspended" ? "bg-amber-500" : "bg-red-500"
+                      }`} />
+                      {onu.status === "online"    ? "Online" :
+                       onu.status === "suspended" ? "Suspendida" : "Offline"}
+                    </span>
+                  </span>
+                  <span className="col-span-2 text-xs text-gray-400">{onu.description || "—"}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ONUs No Autorizadas */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
         <div className="flex items-center gap-2 mb-4">
           <AlertCircle className="w-5 h-5 text-amber-500" />
@@ -827,7 +904,7 @@ const OltTab = () => {
         {authMode === "auto" && (
           <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-4 text-xs text-green-700">
             ✅ Esta OLT tiene <strong>auto-provisioning activo</strong> — las ONUs se autorizan
-            automáticamente al conectarse. Solo necesitas registrar el serial en la conexión del cliente.
+            automáticamente al conectarse.
           </div>
         )}
 
@@ -841,9 +918,7 @@ const OltTab = () => {
             <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-green-400" />
             <p className="text-sm font-medium text-green-600">Sin ONUs pendientes</p>
             <p className="text-xs text-gray-400 mt-1">
-              {authMode === "manual"
-                ? "Todas las ONUs están autorizadas"
-                : "No hay nuevas ONUs detectadas"}
+              {authMode === "manual" ? "Todas las ONUs están autorizadas" : "No hay nuevas ONUs detectadas"}
             </p>
           </div>
         ) : (
@@ -892,7 +967,6 @@ export default function NodosRedPage() {
   const handleConnect = async (formCreds) => {
     setConnecting(true);
     try {
-      // 1. System info — CPU, RAM, interfaces básicas
       const res = await api.post("/mikrotik/system-info", {
         host:     formCreds.host,
         username: formCreds.username,
@@ -904,13 +978,11 @@ export default function NodosRedPage() {
       setCreds(formCreds);
       toast.success(`Conectado a ${res.data.identity || formCreds.host}`);
 
-      // localstorage
-localStorage.setItem("netkeeper_mk_interfaces", JSON.stringify({
-  host: formCreds.host,
-  interfaces: res.data.interfaces,
-}));
+      localStorage.setItem("netkeeper_mk_interfaces", JSON.stringify({
+        host: formCreds.host,
+        interfaces: res.data.interfaces,
+      }));
 
-      // 2. IP pool en vivo — en paralelo, no bloquea la UI
       setLoadingPool(true);
       api.post("/mikrotik/ip-pool-live", {
         host:     formCreds.host,
@@ -920,7 +992,7 @@ localStorage.setItem("netkeeper_mk_interfaces", JSON.stringify({
         use_ssl:  formCreds.use_ssl,
       })
         .then(r => setPoolData(r.data))
-        .catch(() => { /* silencioso — pool es complementario */ })
+        .catch(() => {})
         .finally(() => setLoadingPool(false));
 
     } catch (err) {
@@ -934,8 +1006,7 @@ localStorage.setItem("netkeeper_mk_interfaces", JSON.stringify({
     setCreds(null);
     setSysInfo(null);
     setPoolData(null);
-    localStorage.removeItem("netkeeper_mk_interfaces"); 
-
+    localStorage.removeItem("netkeeper_mk_interfaces");
   };
 
   const tabs = [
@@ -945,7 +1016,6 @@ localStorage.setItem("netkeeper_mk_interfaces", JSON.stringify({
 
   return (
     <div className="p-6">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Nodos de Red</h1>
         <p className="text-sm text-gray-500 mt-0.5">
@@ -953,7 +1023,6 @@ localStorage.setItem("netkeeper_mk_interfaces", JSON.stringify({
         </p>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-2 mb-6 border-b border-gray-200">
         {tabs.map(tab => {
           const Icon = tab.icon;
@@ -974,13 +1043,10 @@ localStorage.setItem("netkeeper_mk_interfaces", JSON.stringify({
         })}
       </div>
 
-      {/* Tab MikroTik */}
       {activeTab === "mikrotik" && (
         <>
           {!sysInfo ? (
-            <div>
-              <ConnectForm onConnect={handleConnect} connecting={connecting} />
-            </div>
+            <ConnectForm onConnect={handleConnect} connecting={connecting} />
           ) : (
             <div className="space-y-4">
               <SystemCard info={sysInfo} onDisconnect={handleDisconnect} />
@@ -1001,7 +1067,6 @@ localStorage.setItem("netkeeper_mk_interfaces", JSON.stringify({
         </>
       )}
 
-      {/* Tab OLT */}
       {activeTab === "olt" && <OltTab />}
     </div>
   );
