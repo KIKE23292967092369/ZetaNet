@@ -26,7 +26,7 @@ class OltCredentials:
     snmp_version: str = "2c"
     brand: str = ""
     model: str = ""
-
+    enable_password: str = ""
 
 @dataclass
 class OnuInfo:
