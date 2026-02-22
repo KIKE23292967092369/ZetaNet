@@ -29,6 +29,7 @@ class DirectConnectRequest(BaseModel):
     ssh_password: str
     ssh_port: int = 22
     brand: str  # "zte", "vsol", etc.
+    enable_password: str = "" 
 
 
 class AuthorizeOnuOltRequest(BaseModel):
@@ -92,6 +93,7 @@ async def connect_olt_direct(
     data: DirectConnectRequest,
     user: User = Depends(get_current_user)
 ):
+
     """
     Conecta a una OLT directamente con credenciales SSH.
     No requiere cell_id — usado en Nodos de Red para probar/monitorear.
@@ -124,7 +126,7 @@ async def connect_olt_direct(
                     for onu in onus
                 ]
             except Exception:
-                pass  # ONUs no críticas, no bloquear respuesta
+                pass  
 
         return {
             **result,
@@ -136,6 +138,40 @@ async def connect_olt_direct(
 
     except OltError as e:
         return {"connected": False, "error": str(e), "host": data.host}
+    
+@router.post("/all-onus-direct")
+async def list_all_onus_direct(
+    data: DirectConnectRequest,
+    user: User = Depends(get_current_user)
+):
+    """Lista todas las ONUs autorizadas en la OLT."""
+    try:
+        credentials = OltCredentials(
+            host=data.host,
+            ssh_username=data.ssh_username,
+            ssh_password=data.ssh_password,
+            ssh_port=data.ssh_port,
+            brand=data.brand,
+            enable_password=data.enable_password,
+        )
+        driver = get_olt_driver(credentials)
+        onus = await driver.list_all_onus()
+        return {
+            "total": len(onus),
+            "onus": [
+                {
+                    "onu_id": onu.onu_id,
+                    "serial_number": onu.serial_number,
+                    "slot": onu.slot,
+                    "pon_port": onu.pon_port,
+                    "status": onu.status,
+                    "description": onu.description,
+                }
+                for onu in onus
+            ]
+        }
+    except OltError as e:
+        return {"error": str(e), "total": 0, "onus": []}
 
 
 # ================================================================
